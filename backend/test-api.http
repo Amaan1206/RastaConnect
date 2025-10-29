@@ -1,0 +1,42 @@
+# RastaConnect/backend/test-api.http
+
+### Register a new user
+POST http://localhost:3001/api/users/register
+Content-Type: application/json
+
+{
+  "fullName": "Test Driver",
+  "email": "driver@example.com",
+  "password": "password123"
+}
+
+
+###
+### Login to get a token
+POST http://localhost:3001/api/users/login
+Content-Type: application/json
+
+{
+  "email": "driver@example.com",
+  "password": "password123"
+}
+
+
+###
+### Offer a Ride (PROTECTED)
+# You MUST copy the token from the login response and paste it below
+POST http://localhost:3001/api/rides
+Content-Type: application/json
+x-auth-token: PASTE_YOUR_TOKEN_HERE
+
+{
+  "origin": "Mumbai",
+  "destination": "Pune",
+  "departureTime": "2025-09-16T09:00:00",
+  "availableSeats": 3,
+  "price": 500
+}
+
+###
+### Get All Rides (PUBLIC)
+GET http://localhost:3001/api/rides

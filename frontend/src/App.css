@@ -1,0 +1,420 @@
+/* RastaConnect/frontend/src/App.css */
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+main.main-content {
+  flex: 1;
+  padding: 40px 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* --- Header / Navbar --- */
+.main-header {
+  background-color: var(--primary-black);
+  padding: 20px 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-dark);
+}
+
+.main-header .logo {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--text-white);
+}
+
+.main-header nav {
+  display: flex;
+  align-items: center;
+  gap: 25px;
+}
+
+.main-header nav a {
+  font-weight: 500;
+  color: var(--text-gray);
+  position: relative;
+  padding: 5px 0;
+}
+
+.main-header nav a:hover,
+.main-header nav a.active {
+  color: var(--text-white);
+}
+
+.main-header nav a::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 0;
+  height: 2px;
+  background-color: var(--accent-green);
+  transition: width 0.3s ease;
+}
+
+.main-header nav a:hover::after,
+.main-header nav a.active::after {
+  width: 100%;
+}
+
+.logout-button {
+  background-color: transparent;
+  border: 1px solid var(--border-dark);
+  color: var(--text-gray);
+  padding: 8px 18px;
+  border-radius: 5px;
+}
+
+.logout-button:hover {
+  background-color: var(--secondary-black);
+  border-color: var(--accent-green);
+  color: var(--text-white);
+}
+
+/* --- Auth Pages (Login/Register) --- */
+.auth-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 80px); /* Adjust based on header height */
+  padding: 20px;
+}
+
+.card {
+  background: var(--card-gradient);
+  border: 1px solid var(--border-dark);
+  border-radius: 12px;
+  box-shadow: var(--box-shadow-dark);
+  padding: 30px;
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+
+.card h2 {
+  margin-bottom: 25px;
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+.card form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.info-message {
+  background-color: var(--secondary-black);
+  color: var(--text-white);
+  padding: 15px;
+  border-radius: 8px;
+  margin-top: 20px;
+  border: 1px solid var(--border-dark);
+}
+
+/* --- Dashboard Layout --- */
+.dashboard {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 40px;
+}
+
+.dashboard-header {
+  grid-column: 1 / -1;
+  text-align: left;
+  margin-bottom: 20px;
+  padding: 0; /* No padding here, handled by main-content */
+  background: none;
+  border: none;
+  box-shadow: none;
+}
+
+.dashboard-header h2 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  text-align: left;
+  line-height: 1.2;
+}
+
+.dashboard-content {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 30px;
+  align-items: flex-start;
+}
+
+.offer-ride-wrapper .card {
+  max-width: none;
+  padding: 30px;
+}
+
+.ride-list-wrapper-full {
+  grid-column: 1 / -1;
+}
+
+.search-filters {
+  background: var(--secondary-black);
+  border: 1px solid var(--border-dark);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  gap: 15px;
+  margin-bottom: 30px;
+  box-shadow: var(--box-shadow-dark);
+}
+
+.search-filters input {
+  flex: 1;
+}
+
+/* --- Ride List & Cards --- */
+.ride-list-container h2 {
+  font-size: 2rem;
+  text-align: left;
+  margin-bottom: 25px;
+}
+
+.ride-list {
+  display: grid;
+  gap: 20px;
+}
+
+.ride-card {
+  background: var(--card-gradient);
+  border: 1px solid var(--border-dark);
+  border-radius: 12px;
+  box-shadow: var(--box-shadow-dark);
+  padding: 25px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.ride-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(82, 255, 0, 0.2);
+}
+
+.ride-card h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-white);
+  margin-bottom: 5px;
+}
+
+.ride-card p {
+  color: var(--text-gray);
+  margin: 0;
+}
+
+.ride-card .price {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--accent-green);
+  text-align: right;
+  margin-top: 10px;
+}
+
+.ride-card .book-button, .ride-card .cancel-button {
+  width: fit-content;
+  align-self: flex-end;
+  margin-top: 15px;
+}
+
+/* --- My Rides Page --- */
+.my-rides-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 30px;
+}
+
+.rides-section {
+  background: var(--card-gradient);
+  border: 1px solid var(--border-dark);
+  border-radius: 12px;
+  box-shadow: var(--box-shadow-dark);
+  padding: 30px;
+}
+
+.rides-section h2 {
+  font-size: 2rem;
+  margin-bottom: 25px;
+  text-align: left;
+}
+
+.vehicle-details {
+  margin-top: 10px;
+  border-top: 1px dashed var(--border-dark);
+  padding-top: 10px;
+}
+
+.vehicle-details p {
+  font-size: 0.9rem;
+  color: var(--text-gray);
+}
+
+/* --- Profile Page --- */
+.profile-container {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.profile-details p {
+  font-size: 1.1rem;
+  margin-bottom: 10px;
+}
+
+.profile-details strong {
+  color: var(--text-white);
+  margin-right: 5px;
+}
+
+.profile-container .card h2 {
+    text-align: left;
+}
+
+.verification-section {
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-dark);
+}
+
+.verification-section h3 {
+  font-size: 1.5rem;
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+/* Statuses */
+.status-verified {
+  color: var(--accent-green);
+  font-weight: 600;
+}
+
+.status-unverified, .status-canceled {
+  color: var(--red-color); /* Assuming red for unverified/canceled */
+  font-weight: 600;
+}
+
+/* --- My Vehicles Page --- */
+.vehicle-card {
+  background: var(--secondary-black);
+  border: 1px solid var(--border-dark);
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.vehicle-card p {
+  margin: 0;
+}
+
+.vehicle-card strong {
+  color: var(--text-white);
+  font-size: 1.1rem;
+}
+
+/* --- Responsive Adjustments --- */
+@media (max-width: 768px) {
+  .main-header {
+    flex-direction: column;
+    gap: 15px;
+    padding: 15px 20px;
+  }
+  .main-header nav {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+  }
+  .dashboard-content {
+    grid-template-columns: 1fr;
+  }
+  .search-filters {
+    flex-direction: column;
+  }
+}
+
+/* --- NEW: Profile Page Enhancements --- */
+.profile-container {
+    display: flex; /* This will center the card */
+    justify-content: center;
+    align-items: flex-start;
+}
+.profile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+.profile-header h2 {
+    text-align: left;
+}
+.profile-details p {
+    text-align: left;
+    font-size: 1.1rem;
+    border-bottom: 1px solid var(--border-dark);
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+}
+.verified-tick {
+    color: var(--accent-green);
+    font-weight: bold;
+    margin-left: 10px;
+}
+.profile-container form label {
+    text-align: left;
+    font-weight: 500;
+    margin-bottom: -10px;
+    font-size: 0.9rem;
+    color: var(--text-gray);
+}
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+.save-button {
+    background-color: var(--accent-green);
+    color: var(--primary-black);
+}
+.save-button:hover {
+    background-color: var(--button-hover-green);
+}
+.edit-button {
+    padding: 8px 18px;
+    background-color: transparent;
+    border: 1px solid var(--border-dark);
+    color: var(--text-gray);
+}
+.edit-button:hover {
+    background-color: var(--secondary-black);
+    border-color: var(--accent-green);
+    color: var(--text-white);
+}
+/* --- FIX for Auth Page Alignment --- */
+.auth-page-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 20px;
+  min-height: calc(100vh - 120px); /* Adjusts for header */
+}
+
+.auth-forms-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  width: 100%;
+  max-width: 400px;
+}

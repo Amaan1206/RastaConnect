@@ -1,0 +1,6 @@
+const express = require('express');
+const db = require('../database');
+const auth = require('../middleware/auth');
+const router = express.Router();
+router.delete('/:bookingId', auth, (req, res) => { const bookingId = req.params.bookingId; const passengerId = req.user.id; db.serialize(() => { db.run('BEGIN TRANSACTION'); const checkSql = `SELECT rideId FROM bookings WHERE id = ? AND passengerId = ? AND status = 'confirmed'`; db.get(checkSql, [bookingId, passengerId], (err, booking) => { if (err || !booking) { db.run('ROLLBACK'); return res.status(403).json({ message: 'Forbidden: Booking not found or you are not the passenger.' }); } const updateBookingSql = `UPDATE bookings SET status = 'canceled' WHERE id = ?`; db.run(updateBookingSql, [bookingId], (err) => { if (err) { db.run('ROLLBACK'); return res.status(500).json({ message: 'Failed to cancel booking.' }); } const updateRideSql = `UPDATE rides SET availableSeats = availableSeats + 1 WHERE id = ?`; db.run(updateRideSql, [booking.rideId], (err) => { if (err) { db.run('ROLLBACK'); return res.status(500).json({ message: 'Failed to update ride seats.' }); } db.run('COMMIT'); res.status(200).json({ message: 'Booking canceled successfully.' }); }); }); }); }); });
+module.exports = router;
