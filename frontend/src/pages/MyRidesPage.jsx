@@ -1,17 +1,19 @@
 // RastaConnect/frontend/src/pages/MyRidesPage.jsx
 
 import React, { useState, useEffect } from 'react';
+import { useOutletContext } from 'react-router-dom';
 
 function MyRidesPage() {
+  const { authToken } = useOutletContext();
   const [offeredRides, setOfferedRides] = useState([]);
   const [bookedRides, setBookedRides] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState('');
 
-  const fetchMyRides = async () => { setIsLoading(true); setMessage(''); const token = localStorage.getItem('token'); if (!token) { setIsLoading(false); return; } try { const [offeredRes, bookedRes] = await Promise.all([ fetch('/api/my-rides/offered', { headers: { 'x-auth-token': token } }), fetch('/api/my-rides/booked', { headers: { 'x-auth-token': token } }) ]); if (!offeredRes.ok || !bookedRes.ok) { const offeredData = await offeredRes.json(); const bookedData = await bookedRes.json(); throw new Error(offeredData.message || bookedData.message || 'Failed to fetch rides'); } const offeredData = await offeredRes.json(); const bookedData = await bookedRes.json(); setOfferedRides(offeredData.rides || []); setBookedRides(bookedData.rides || []); } catch (error) { console.error("Failed to fetch my rides:", error); setMessage(error.message); } finally { setIsLoading(false); }};
-  useEffect(() => { fetchMyRides(); }, []);
-  const handleCancelRide = async (rideId) => { if (!window.confirm("Are you sure you want to cancel this ride? This will cancel all bookings as well.")) return; const token = localStorage.getItem('token'); try { const res = await fetch(`/api/rides/${rideId}`, { method: 'DELETE', headers: { 'x-auth-token': token } }); const data = await res.json(); if (!res.ok) throw new Error(data.message); setMessage(data.message); fetchMyRides(); } catch (error) { setMessage(error.message); } };
-  const handleCancelBooking = async (bookingId) => { if (!window.confirm("Are you sure you want to cancel this booking?")) return; const token = localStorage.getItem('token'); try { const res = await fetch(`/api/bookings/${bookingId}`, { method: 'DELETE', headers: { 'x-auth-token': token } }); const data = await res.json(); if (!res.ok) throw new Error(data.message); setMessage(data.message); fetchMyRides(); } catch (error) { setMessage(error.message); } };
+  const fetchMyRides = async () => { setIsLoading(true); setMessage(''); try { if (!authToken) { window.location.href = '/login'; setIsLoading(false); return; } const [offeredRes, bookedRes] = await Promise.all([ fetch('/api/my-rides/offered', { headers: { 'Authorization': `Bearer ${authToken}` } }), fetch('/api/my-rides/booked', { headers: { 'Authorization': `Bearer ${authToken}` } }) ]); if (!offeredRes.ok || !bookedRes.ok) { const offeredData = await offeredRes.json(); const bookedData = await bookedRes.json(); throw new Error(offeredData.message || bookedData.message || 'Failed to fetch rides'); } const offeredData = await offeredRes.json(); const bookedData = await bookedRes.json(); setOfferedRides(offeredData.rides || []); setBookedRides(bookedData.rides || []); } catch (error) { console.error("Failed to fetch my rides:", error); setMessage(error.message); } finally { setIsLoading(false); }};
+  useEffect(() => { fetchMyRides(); }, [authToken]);
+  const handleCancelRide = async (rideId) => { if (!window.confirm("Are you sure you want to cancel this ride? This will cancel all bookings as well.")) return; try { if (!authToken) { window.location.href = '/login'; return; } const res = await fetch(`/api/rides/${rideId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${authToken}` } }); const data = await res.json(); if (!res.ok) throw new Error(data.message); setMessage(data.message); fetchMyRides(); } catch (error) { setMessage(error.message); } };
+  const handleCancelBooking = async (bookingId) => { if (!window.confirm("Are you sure you want to cancel this booking?")) return; try { if (!authToken) { window.location.href = '/login'; return; } const res = await fetch(`/api/bookings/${bookingId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${authToken}` } }); const data = await res.json(); if (!res.ok) throw new Error(data.message); setMessage(data.message); fetchMyRides(); } catch (error) { setMessage(error.message); } };
   const formatDateTime = (isoString) => { if (!isoString) return 'Invalid date'; const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }; return new Date(isoString).toLocaleDateString(undefined, options); };
 
   if (isLoading) { return <p>Loading your rides...</p>; }

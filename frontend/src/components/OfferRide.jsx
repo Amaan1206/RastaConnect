@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-function OfferRide({ onRideOffered, setInfoMessage }) {
+function OfferRide({ onRideOffered, setInfoMessage, authToken }) {
   const [origin, setOrigin] = useState('');
   const [destination, setDestination] = useState('');
   const [departureTime, setDepartureTime] = useState('');
@@ -14,9 +14,9 @@ function OfferRide({ onRideOffered, setInfoMessage }) {
   // --- NEW: Fetch user's vehicles when component loads ---
   useEffect(() => {
     const fetchVehicles = async () => {
-      const token = localStorage.getItem('token');
       try {
-        const res = await fetch('/api/vehicles', { headers: { 'x-auth-token': token } });
+        if (!authToken) { window.location.href = '/login'; return; }
+        const res = await fetch('/api/vehicles', { headers: { 'Authorization': `Bearer ${authToken}` } });
         const data = await res.json();
         if (res.ok) {
           setVehicles(data.vehicles || []);
@@ -30,18 +30,17 @@ function OfferRide({ onRideOffered, setInfoMessage }) {
       }
     };
     fetchVehicles();
-  }, []);
+  }, [authToken]);
 
 
   const handleOfferRide = async (e) => {
     e.preventDefault();
     setInfoMessage('');
-    const token = localStorage.getItem('token');
-    if (!token) { return setInfoMessage('You must be logged in.'); }
     try {
+      if (!authToken) { window.location.href = '/login'; return; }
       const response = await fetch('/api/rides', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
         body: JSON.stringify({
           origin,
           destination,

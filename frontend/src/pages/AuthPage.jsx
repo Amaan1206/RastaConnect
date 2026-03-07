@@ -1,9 +1,10 @@
 // RastaConnect/frontend/src/pages/AuthPage.jsx
 import React, { useState } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
+import { supabase } from '../supabaseClient';
 
 function AuthPage() {
-  const { setCurrentUser } = useOutletContext();
+  const { setCurrentUser, setAuthToken } = useOutletContext();
   const navigate = useNavigate();
 
   // State for forms
@@ -16,8 +17,8 @@ function AuthPage() {
   const [loginMessage, setLoginMessage] = useState('');
 
   // Handler functions (no changes)
-  const handleRegister = async (e) => { e.preventDefault(); setRegisterMessage(''); try { const response = await fetch('/api/users/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fullName: registerFullName, email: registerEmail, password: registerPassword }), }); const data = await response.json(); if (!response.ok) throw new Error(data.message); setRegisterMessage(data.message); } catch (error) { setRegisterMessage(error.message); }};
-  const handleLogin = async (e) => { e.preventDefault(); setLoginMessage(''); try { const response = await fetch('/api/users/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: loginEmail, password: loginPassword }), }); const data = await response.json(); if (!response.ok) throw new Error(data.message); localStorage.setItem('token', data.token); localStorage.setItem('user', JSON.stringify(data.user)); setCurrentUser(data.user); navigate('/'); } catch (error) { setLoginMessage(error.message); }};
+  const handleRegister = async (e) => { e.preventDefault(); setRegisterMessage(''); try { const { error } = await supabase.auth.signUp({ email: registerEmail, password: registerPassword }); if (error) throw new Error(error.message); setRegisterMessage('Registration successful. Check your email to confirm your account.'); } catch (error) { setRegisterMessage(error.message); }};
+  const handleLogin = async (e) => { e.preventDefault(); setLoginMessage(''); try { const { error } = await supabase.auth.signInWithPassword({ email: loginEmail, password: loginPassword }); if (error) throw new Error(error.message); const { data: { session }, error: sessionError } = await supabase.auth.getSession(); if (sessionError) throw new Error(sessionError.message); if (!session) throw new Error('No active session found.'); setAuthToken(session.access_token); setCurrentUser({ id: session.user.id, email: session.user.email, fullName: session.user.user_metadata?.full_name || session.user.email }); navigate('/'); } catch (error) { setLoginMessage(error.message); }};
 
   return (
     <div className="auth-page-container">

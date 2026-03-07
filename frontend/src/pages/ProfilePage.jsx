@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { supabase } from '../supabaseClient';
 
 function ProfilePage() {
     const [profile, setProfile] = useState(null);
@@ -15,9 +16,19 @@ function ProfilePage() {
     const [showOtpForm, setShowOtpForm] = useState(false);
 
     const fetchProfile = async () => {
-        const token = localStorage.getItem('token');
         try {
-            const res = await fetch('/api/profile', { headers: { 'x-auth-token': token } });
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                setMessage('Please log in again');
+                setIsLoading(false);
+                return;
+            }
+            const res = await fetch('/api/profile', {
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
             const data = await res.json();
             if (!res.ok) throw new Error(data.message);
             setProfile(data);
@@ -45,11 +56,18 @@ function ProfilePage() {
     const handleUpdateProfile = async (e) => {
         e.preventDefault();
         setMessage('');
-        const token = localStorage.getItem('token');
         try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                setMessage('Please log in again');
+                return;
+            }
             const res = await fetch('/api/profile', {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+                },
                 body: JSON.stringify(formData),
             });
             const data = await res.json();
@@ -62,8 +80,8 @@ function ProfilePage() {
         }
     };
 
-    const handleSendOtp = async (e) => { e.preventDefault(); setMessage(''); const token = localStorage.getItem('token'); try { const res = await fetch('/api/profile/send-otp', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-auth-token': token }, body: JSON.stringify({ phoneNumber }), }); const data = await res.json(); if (!res.ok) throw new Error(data.message); if (data.otp) { setOtp(data.otp); } setMessage(`OTP sent to terminal. (Hint: it's ${data.otp})`); setShowOtpForm(true); } catch (error) { setMessage(error.message); } };
-    const handleVerifyOtp = async (e) => { e.preventDefault(); setMessage(''); const token = localStorage.getItem('token'); try { const res = await fetch('/api/profile/verify-otp', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-auth-token': token }, body: JSON.stringify({ otp }), }); const data = await res.json(); if (!res.ok) throw new Error(data.message); setMessage(data.message); setShowOtpForm(false); fetchProfile(); } catch (error) { setMessage(error.message); } };
+    const handleSendOtp = async (e) => { e.preventDefault(); setMessage(''); try { const { data: { session } } = await supabase.auth.getSession(); if (!session) { setMessage('Please log in again'); return; } const res = await fetch('/api/profile/send-otp', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` }, body: JSON.stringify({ phoneNumber }), }); const data = await res.json(); if (!res.ok) throw new Error(data.message); if (data.otp) { setOtp(data.otp); } setMessage(`OTP sent to terminal. (Hint: it's ${data.otp})`); setShowOtpForm(true); } catch (error) { setMessage(error.message); } };
+    const handleVerifyOtp = async (e) => { e.preventDefault(); setMessage(''); try { const { data: { session } } = await supabase.auth.getSession(); if (!session) { setMessage('Please log in again'); return; } const res = await fetch('/api/profile/verify-otp', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` }, body: JSON.stringify({ otp }), }); const data = await res.json(); if (!res.ok) throw new Error(data.message); setMessage(data.message); setShowOtpForm(false); fetchProfile(); } catch (error) { setMessage(error.message); } };
 
     if (isLoading) return <p>Loading profile...</p>;
     if (!profile) return <p>Could not load profile. Please log in again.</p>;

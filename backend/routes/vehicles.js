@@ -1,32 +1,63 @@
 // RastaConnect/backend/routes/vehicles.js
 const express = require('express');
-const db = require('../database');
+const { createClient } = require('@supabase/supabase-js');
 const auth = require('../middleware/auth');
 const router = express.Router();
 
+const supabase = createClient(
+    process.env.SUPABASE_URL || 'https://swxocqjjfyfhwacioanc.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN3eG9jcWpqZnlmaHdhY2lvYW5jIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjgwODAyMCwiZXhwIjoyMDg4Mzg0MDIwfQ.RG37CMiXXWd-iauAPYWLOGsn2vPQOmA2neGNdCsvupo'
+);
+
 // GET a user's registered vehicles
-router.get('/', auth, (req, res) => {
-    const sql = "SELECT * FROM vehicles WHERE ownerId = ?";
-    db.all(sql, [req.user.id], (err, vehicles) => {
-        if (err) { return res.status(500).json({ message: 'Database error.'}); }
-        res.json({ vehicles });
-    });
+router.get('/', auth, async (req, res) => {
+    const userId = req.user.id;
+    const { data, error } = await supabase
+        .from('vehicles')
+        .select('*')
+        .eq('user_id', userId);
+
+    if (error) { return res.status(500).json({ message: 'Database error.'}); }
+    const vehicles = (data || []).map((vehicle) => ({
+        id: vehicle.id,
+        type: vehicle.capacity === 1 ? 'Bike' : 'Car',
+        make: vehicle.make,
+        model: vehicle.model,
+        color: vehicle.color,
+        registrationNumber: vehicle.plate_number,
+        user_id: vehicle.user_id
+    }));
+    res.json({ vehicles });
 });
 
 // POST - Add a new vehicle
-router.post('/', auth, (req, res) => {
+router.post('/', auth, async (req, res) => {
     const { type, make, model, color, registrationNumber } = req.body;
-    const ownerId = req.user.id;
-    const sql = `INSERT INTO vehicles (ownerId, type, make, model, color, registrationNumber) VALUES (?, ?, ?, ?, ?, ?)`;
-    db.run(sql, [ownerId, type, make, model, color, registrationNumber.toUpperCase()], function(err) {
-        if (err) {
-            if (err.message.includes('UNIQUE constraint failed')) {
-                return res.status(400).json({ message: 'This registration number is already registered.' });
-            }
-            return res.status(500).json({ message: 'Database error.' });
+    const userId = req.user.id;
+    const normalizedType = type === 'Bike' ? 'Bike' : 'Car';
+    const inferredCapacity = normalizedType === 'Bike' ? 1 : 4;
+
+    const { data, error } = await supabase
+        .from('vehicles')
+        .insert([{
+            user_id: userId,
+            make,
+            model,
+            color,
+            plate_number: String(registrationNumber || '').toUpperCase(),
+            capacity: inferredCapacity,
+            is_active: true
+        }])
+        .select('id')
+        .single();
+
+    if (error) {
+        if (error.code === '23505' || error.message.includes('UNIQUE constraint failed') || error.message.includes('duplicate key')) {
+            return res.status(400).json({ message: 'This registration number is already registered.' });
         }
-        res.status(201).json({ message: 'Vehicle added successfully!', vehicleId: this.lastID });
-    });
+        return res.status(500).json({ message: 'Database error.' });
+    }
+    res.status(201).json({ message: 'Vehicle added successfully!', vehicleId: data.id });
 });
 
 module.exports = router;

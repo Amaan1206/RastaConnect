@@ -1,7 +1,9 @@
 // RastaConnect/frontend/src/pages/VehiclesPage.jsx
 import React, { useState, useEffect } from 'react';
+import { useOutletContext } from 'react-router-dom';
 
 function VehiclesPage() {
+    const { authToken } = useOutletContext();
     const [vehicles, setVehicles] = useState([]);
     const [type, setType] = useState('Car');
     const [make, setMake] = useState('');
@@ -11,22 +13,22 @@ function VehiclesPage() {
     const [message, setMessage] = useState('');
 
     const fetchVehicles = async () => {
-        const token = localStorage.getItem('token');
-        const res = await fetch('/api/vehicles', { headers: { 'x-auth-token': token }});
+        if (!authToken) { window.location.href = '/login'; return; }
+        const res = await fetch('/api/vehicles', { headers: { 'Authorization': `Bearer ${authToken}` }});
         const data = await res.json();
         setVehicles(data.vehicles || []);
     };
 
-    useEffect(() => { fetchVehicles(); }, []);
+    useEffect(() => { fetchVehicles(); }, [authToken]);
 
     const handleAddVehicle = async (e) => {
         e.preventDefault();
         setMessage('');
-        const token = localStorage.getItem('token');
         try {
+            if (!authToken) { window.location.href = '/login'; return; }
             const res = await fetch('/api/vehicles', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
                 body: JSON.stringify({ type, make, model, color, registrationNumber }),
             });
             const data = await res.json();

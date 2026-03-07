@@ -2,9 +2,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import OfferRide from '../components/OfferRide';
 import RideList from '../components/RideList';
+import { supabase } from '../supabaseClient';
 
 function HomePage() {
-  const { currentUser } = useOutletContext();
+  const { currentUser, authToken } = useOutletContext();
   const [allRides, setAllRides] = useState([]);
   const [isLoadingRides, setIsLoadingRides] = useState(true);
   const [infoMessage, setInfoMessage] = useState('');
@@ -12,8 +13,9 @@ function HomePage() {
   const [searchDestination, setSearchDestination] = useState('');
 
   const fetchRides = () => {
+    if (!authToken) { window.location.href = '/login'; return; }
     setIsLoadingRides(true);
-    fetch('/api/rides')
+    fetch('/api/rides', { headers: { 'Authorization': `Bearer ${authToken}` } })
       .then(async (res) => {
         if (!res.ok) {
           const errData = await res.json().catch(() => ({ message: "An unknown error occurred." }));
@@ -35,9 +37,21 @@ function HomePage() {
 
   useEffect(() => {
     fetchRides();
-    const intervalId = setInterval(fetchRides, 15000); // Polling
-    return () => clearInterval(intervalId);
-  }, []);
+    const ridesChannel = supabase
+      .channel('rides')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'rides' },
+        () => {
+          fetchRides();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      ridesChannel.unsubscribe();
+    };
+  }, [authToken]);
 
   const filteredRides = useMemo(() => {
     if (!allRides) return [];
@@ -56,7 +70,7 @@ function HomePage() {
       <div className="dashboard-content">
         {currentUser && (
           <div className="offer-ride-wrapper">
-            <OfferRide onRideOffered={fetchRides} setInfoMessage={setInfoMessage} />
+            <OfferRide onRideOffered={fetchRides} setInfoMessage={setInfoMessage} authToken={authToken} />
           </div>
         )}
         <div className={currentUser ? "ride-list-wrapper" : "ride-list-wrapper-full"}>
@@ -64,7 +78,7 @@ function HomePage() {
             <input type="text" placeholder="From (Origin)" value={searchOrigin} onChange={(e) => setSearchOrigin(e.target.value)} />
             <input type="text" placeholder="To (Destination)" value={searchDestination} onChange={(e) => setSearchDestination(e.target.value)} />
           </div>
-          {isLoadingRides ? <p>Loading rides...</p> : <RideList rides={filteredRides} onRideBooked={fetchRides} infoMessage={infoMessage} setInfoMessage={setInfoMessage} />}
+          {isLoadingRides ? <p>Loading rides...</p> : <RideList rides={filteredRides} onRideBooked={fetchRides} infoMessage={infoMessage} setInfoMessage={setInfoMessage} authToken={authToken} />}
         </div>
       </div>
     </div>
