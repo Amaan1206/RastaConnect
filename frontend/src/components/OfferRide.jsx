@@ -60,30 +60,54 @@ function OfferRide({ onRideOffered, setInfoMessage, authToken }) {
   };
 
   return (
-    <div className="card">
-      <h2>Offer a Ride</h2>
-      <form onSubmit={handleOfferRide}>
-        {/* --- NEW: Vehicle Selector Dropdown --- */}
-        <select value={selectedVehicleId} onChange={(e) => setSelectedVehicleId(e.target.value)} required>
-          <option value="" disabled>-- Select Your Vehicle --</option>
-          {vehicles.length > 0 ? (
-            vehicles.map(v => (
-              <option key={v.id} value={v.id}>
-                {v.make} {v.model} ({v.registrationNumber})
-              </option>
-            ))
-          ) : (
-            <option disabled>Please add a vehicle first</option>
-          )}
-        </select>
+    <div className="hs-card">
+      <h2 className="hs-section-title">Offer a Ride</h2>
+      <div className="hs-offer-grid">
+        <div className="hs-offer-field">
+          <label className="hs-offer-label">Select Vehicle</label>
+          <select className="hs-input hs-input-select" value={selectedVehicleId} onChange={(e) => setSelectedVehicleId(e.target.value)} required>
+            <option value="" disabled>-- Select Your Vehicle --</option>
+            {vehicles.length > 0 ? (
+              vehicles.map(v => (
+                <option key={v.id} value={v.id}>
+                  {v.make} {v.model} ({v.registrationNumber})
+                </option>
+              ))
+            ) : (
+              <option disabled>Please add a vehicle first</option>
+            )}
+          </select>
+        </div>
 
-        <input type="text" placeholder="Origin" value={origin} onChange={(e) => setOrigin(e.target.value)} required />
-        <input type="text" placeholder="Destination" value={destination} onChange={(e) => setDestination(e.target.value)} required />
-        <input type="datetime-local" placeholder="Departure Time" value={departureTime} onChange={(e) => setDepartureTime(e.target.value)} required />
-        <input type="number" min="1" placeholder="Available Seats" value={availableSeats} onChange={(e) => setAvailableSeats(e.target.value)} required />
-        <input type="number" min="0" placeholder="Price per seat" value={price} onChange={(e) => setPrice(e.target.value)} required />
-        <button type="submit" disabled={vehicles.length === 0}>Offer Ride</button>
-      </form>
+        <div className="hs-offer-two-col">
+          <div className="hs-offer-field">
+            <label className="hs-offer-label">From (Origin)</label>
+            <input className="hs-input" type="text" placeholder="Enter origin" value={origin} onChange={(e) => setOrigin(e.target.value)} required />
+          </div>
+          <div className="hs-offer-field">
+            <label className="hs-offer-label">To (Destination)</label>
+            <input className="hs-input" type="text" placeholder="Enter destination" value={destination} onChange={(e) => setDestination(e.target.value)} required />
+          </div>
+        </div>
+
+        <div className="hs-offer-two-col">
+          <div className="hs-offer-field">
+            <label className="hs-offer-label">Date &amp; Time</label>
+            <input className="hs-input" type="datetime-local" placeholder="Select date and time" value={departureTime} onChange={(e) => setDepartureTime(e.target.value)} required />
+          </div>
+          <div className="hs-offer-field">
+            <label className="hs-offer-label">Seats Available</label>
+            <input className="hs-input" type="number" min="1" placeholder="Seats" value={availableSeats} onChange={(e) => setAvailableSeats(e.target.value)} required />
+          </div>
+        </div>
+
+        <div className="hs-offer-field">
+          <label className="hs-offer-label">Price per seat (₹)</label>
+          <input className="hs-input" type="number" min="0" placeholder="Set price per seat" value={price} onChange={(e) => setPrice(e.target.value)} required />
+        </div>
+
+        <button className="hs-post-btn" type="button" onClick={handleOfferRide} disabled={vehicles.length === 0}>Post Ride Offer</button>
+      </div>
     </div>
   );
 }

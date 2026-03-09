@@ -17,7 +17,7 @@ const toLegacyRideStatus = (status) => {
 router.get('/', async (req, res) => {
   const { data: rides, error } = await supabase
     .from('rides')
-    .select('id, user_id, vehicle_id, pickup_address, dropoff_address, departure_time, available_seats, price, status')
+    .select('*, users(full_name, phone, age, gender, talkativeness, music_preference, face_verified), vehicles(*), bookings(*)')
     .eq('status', 'scheduled')
     .gt('available_seats', 0);
 
@@ -26,37 +26,49 @@ router.get('/', async (req, res) => {
     return res.status(500).json({ message: 'Database error.', error: error.message });
   }
 
-  const driverIds = [...new Set((rides || []).map((ride) => ride.user_id).filter(Boolean))];
-  let usersById = {};
+  const formattedRides = (rides || []).map((ride) => {
+    const relatedBookings = Array.isArray(ride.bookings) ? ride.bookings : [];
+    const hasActiveBooking = relatedBookings.some(
+      (booking) => booking.status === 'confirmed' || booking.status === 'active'
+    );
 
-  if (driverIds.length > 0) {
-    const { data: users, error: usersError } = await supabase
-      .from('users')
-      .select('id, full_name')
-      .in('id', driverIds);
+    const driverDetails = hasActiveBooking
+      ? {
+          full_name: ride.users?.full_name || '',
+          phone: ride.users?.phone || '',
+          age: ride.users?.age ?? '',
+          gender: ride.users?.gender ?? '',
+          talkativeness: ride.users?.talkativeness ?? '',
+          music_preference: ride.users?.music_preference ?? '',
+          face_verified: Boolean(ride.users?.face_verified),
+        }
+      : null;
 
-    if (usersError) {
-      console.error('!!! DATABASE ERROR fetching driver names:', usersError.message);
-      return res.status(500).json({ message: 'Database error.', error: usersError.message });
-    }
+    const vehicleDetails = hasActiveBooking
+      ? {
+          make: ride.vehicles?.make || '',
+          model: ride.vehicles?.model || '',
+          color: ride.vehicles?.color || '',
+          plate_number: ride.vehicles?.plate_number || '',
+          capacity: ride.vehicles?.capacity ?? null,
+        }
+      : null;
 
-    usersById = (users || []).reduce((acc, user) => {
-      acc[user.id] = user.full_name;
-      return acc;
-    }, {});
-  }
-
-  const formattedRides = (rides || []).map((ride) => ({
-    id: ride.id,
-    origin: ride.pickup_address,
-    destination: ride.dropoff_address,
-    departureTime: ride.departure_time,
-    availableSeats: ride.available_seats,
-    price: ride.price,
-    status: toLegacyRideStatus(ride.status),
-    driverName: usersById[ride.user_id] || 'Driver',
-    vehicleId: ride.vehicle_id,
-  }));
+    return {
+      id: ride.id,
+      origin: ride.pickup_address,
+      destination: ride.dropoff_address,
+      departureTime: ride.departure_time,
+      availableSeats: ride.available_seats,
+      price: ride.price,
+      status: toLegacyRideStatus(ride.status),
+      driverName: hasActiveBooking ? (ride.users?.full_name || 'Driver') : 'Driver',
+      driverFaceVerified: Boolean(ride.users?.face_verified),
+      vehicleId: ride.vehicle_id,
+      driver: driverDetails,
+      vehicle: vehicleDetails,
+    };
+  });
 
   return res.status(200).json({ rides: formattedRides });
 });
@@ -123,48 +135,94 @@ router.delete('/:rideId', auth, async (req, res) => {
 router.post('/:rideId/book', auth, async (req, res) => {
   const rideId = req.params.rideId;
   const passengerId = req.user.id;
+  const { pickup_location, drop_location, passenger_price } = req.body;
 
   const { data: ride, error: checkRideError } = await supabase
     .from('rides')
-    .select('available_seats, user_id, status')
+    .select('available_seats, user_id, status, price')
     .eq('id', rideId)
     .maybeSingle();
 
-  if (checkRideError) {
-    return res.status(500).json({ message: 'Database error checking ride.' });
-  }
-  if (!ride || ride.status !== 'scheduled') {
-    return res.status(404).json({ message: 'Ride not found or is no longer active.' });
-  }
-  if (ride.user_id === passengerId) {
-    return res.status(400).json({ message: 'You cannot book your own ride.' });
-  }
-  if (ride.available_seats < 1) {
-    return res.status(400).json({ message: 'No seats available on this ride.' });
-  }
+  if (checkRideError) return res.status(500).json({ message: 'Database error checking ride.' });
+  if (!ride || ride.status !== 'scheduled') return res.status(404).json({ message: 'Ride not found or is no longer active.' });
+  if (ride.user_id === passengerId) return res.status(400).json({ message: 'You cannot book your own ride.' });
+  if (ride.available_seats < 1) return res.status(400).json({ message: 'No seats available on this ride.' });
 
-  const updatedSeats = ride.available_seats - 1;
-  const { error: updateRideError } = await supabase
-    .from('rides')
-    .update({ available_seats: updatedSeats })
-    .eq('id', rideId);
+  const driverPrice = ride.price;
+  const offeredPrice = Number(passenger_price);
+  const status = offeredPrice === driverPrice ? 'confirmed' : 'pending';
 
-  if (updateRideError) {
-    return res.status(500).json({ message: 'Failed to update ride seats.' });
+  // Only deduct seat if confirmed immediately
+  if (status === 'confirmed') {
+    const { error: updateRideError } = await supabase
+      .from('rides')
+      .update({ available_seats: ride.available_seats - 1 })
+      .eq('id', rideId);
+    if (updateRideError) return res.status(500).json({ message: 'Failed to update ride seats.' });
   }
 
   const { data: booking, error: insertBookingError } = await supabase
     .from('bookings')
-    .insert([{ ride_id: rideId, user_id: passengerId, seats: 1, status: 'confirmed' }])
+    .insert([{
+      ride_id: rideId,
+      user_id: passengerId,
+      seats: 1,
+      status,
+      pickup_location: pickup_location || '',
+      drop_location: drop_location || '',
+      passenger_price: offeredPrice,
+      driver_price: driverPrice
+    }])
     .select('id')
     .single();
 
   if (insertBookingError) {
-    await supabase.from('rides').update({ available_seats: ride.available_seats }).eq('id', rideId);
+    if (status === 'confirmed') {
+      await supabase.from('rides').update({ available_seats: ride.available_seats }).eq('id', rideId);
+    }
     return res.status(500).json({ message: 'Failed to create booking.' });
   }
 
-  return res.status(201).json({ message: 'Ride booked successfully!', bookingId: booking.id });
+  return res.status(201).json({
+    message: status === 'confirmed' ? 'Ride booked successfully!' : 'Booking request sent! Waiting for driver confirmation.',
+    bookingId: booking.id,
+    status
+  });
 });
 
+// PUT - Complete a ride (driver only)
+router.put('/:rideId/complete', auth, async (req, res) => {
+  try {
+    const rideId = req.params.rideId;
+    const driverId = req.user.id;
+
+    const { data: ride, error } = await supabase
+      .from('rides')
+      .select('user_id, status')
+      .eq('id', rideId)
+      .maybeSingle();
+
+    if (error || !ride) return res.status(404).json({ message: 'Ride not found.' });
+    if (ride.user_id !== driverId) return res.status(403).json({ message: 'Forbidden.' });
+    if (ride.status === 'completed') return res.status(400).json({ message: 'Ride already completed.' });
+
+    await supabase.from('rides').update({ status: 'completed' }).eq('id', rideId);
+
+    // Update driver total_rides count
+    const { data: driverData } = await supabase
+      .from('users')
+      .select('total_rides')
+      .eq('id', driverId)
+      .maybeSingle();
+
+    await supabase
+      .from('users')
+      .update({ total_rides: (driverData?.total_rides || 0) + 1 })
+      .eq('id', driverId);
+
+    return res.status(200).json({ message: 'Ride marked as completed.' });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+});
 module.exports = router;

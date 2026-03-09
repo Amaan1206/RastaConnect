@@ -21,7 +21,7 @@ router.get('/offered', auth, async (req, res) => {
 
   const { data, error } = await supabase
     .from('rides')
-    .select('id, pickup_address, dropoff_address, departure_time, available_seats, price, status')
+    .select('id, pickup_address, dropoff_address, departure_time, available_seats, price, status, user_id')
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
 
@@ -35,6 +35,7 @@ router.get('/offered', auth, async (req, res) => {
     availableSeats: ride.available_seats,
     price: ride.price,
     status: toLegacyRideStatus(ride.status),
+    userId: ride.user_id,
   }));
 
   return res.status(200).json({ rides });
@@ -48,7 +49,7 @@ router.get('/booked', auth, async (req, res) => {
     .from('bookings')
     .select('id, ride_id, status')
     .eq('user_id', userId)
-    .eq('status', 'confirmed');
+    .neq('status', 'cancelled');
 
   if (bookingsError) { return res.status(500).json({ message: 'Database error.', error: bookingsError.message }); }
   if (!bookings || bookings.length === 0) { return res.status(200).json({ rides: [] }); }
@@ -121,6 +122,8 @@ router.get('/booked', auth, async (req, res) => {
         vehicleModel: vehicle?.model || '',
         vehicleColor: vehicle?.color || '',
         vehicleRegistration: vehicle?.plate_number || '',
+        rideStatus: ride.status,
+        driverId: ride.user_id,
       };
     })
     .filter(Boolean);

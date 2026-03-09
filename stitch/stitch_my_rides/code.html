@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>My Rides - RastaConnect</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#313851",
+                        "background-light": "#C2CBD3",
+                        "background-dark": "#23190f",
+                        "rasta-dark": "#313851",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }</script>
+<style>
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background-color: #C2CBD3;
+            color: #313851;
+        }
+    </style>
+</head>
+<body class="antialiased font-display">
+<div class="min-h-screen py-10 px-4 sm:px-6 lg:px-8">
+<div class="max-w-4xl mx-auto">
+<header class="mb-10">
+<h1 class="text-4xl font-bold text-rasta-dark tracking-tight">My Rides</h1>
+<p class="text-rasta-dark/60 mt-2 text-lg font-medium">Manage your shared journeys across Mumbai campus routes</p>
+</header>
+<section class="mb-12">
+<div class="flex items-center justify-between mb-6">
+<h2 class="text-2xl font-bold text-rasta-dark">Rides You've Offered</h2>
+<span class="bg-rasta-dark/10 text-rasta-dark px-3 py-1 rounded-full text-sm font-semibold">0 Active</span>
+</div>
+<div class="grid gap-6"><div class="bg-white/50 border-2 border-dashed border-rasta-dark/20 rounded-xl p-10 text-center flex flex-col items-center">
+<div class="w-16 h-16 bg-rasta-dark/5 rounded-full flex items-center justify-center mb-4">
+<span class="material-symbols-outlined text-rasta-dark/30 text-3xl">add_road</span>
+</div>
+<p class="text-rasta-dark/60 font-medium">You haven't offered any rides yet</p>
+<button class="mt-4 text-white px-6 py-2 rounded-xl font-bold text-sm shadow-sm hover:brightness-110 transition-all bg-rasta-dark/80 backdrop-blur-sm">
+                            Offer a Ride
+                        </button>
+</div></div>
+</section>
+<section class="mb-12">
+<div class="flex items-center justify-between mb-6">
+<h2 class="text-2xl font-bold text-rasta-dark">Rides You've Booked</h2>
+<span class="bg-rasta-dark/10 text-rasta-dark px-3 py-1 rounded-full text-sm font-semibold">0 Bookings</span>
+</div>
+<div class="grid gap-6"><div class="bg-white/50 border-2 border-dashed border-rasta-dark/20 rounded-xl p-10 text-center flex flex-col items-center">
+<div class="w-16 h-16 bg-rasta-dark/5 rounded-full flex items-center justify-center mb-4">
+<span class="material-symbols-outlined text-rasta-dark/30 text-3xl">confirmation_number</span>
+</div>
+<p class="text-rasta-dark/60 font-medium">You haven't booked any rides yet</p>
+<button class="mt-4 text-white px-6 py-2 rounded-xl font-bold text-sm shadow-sm hover:brightness-125 transition-all bg-rasta-dark/80 backdrop-blur-sm">
+                            Find a Ride
+                        </button>
+</div></div>
+</section>
+<!-- Empty States Showcase (Requested in prompt) -->
+</div>
+</div>
+</body></html>
