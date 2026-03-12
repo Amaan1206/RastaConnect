@@ -11,6 +11,11 @@ function HomePage() {
   const [infoMessage, setInfoMessage] = useState('');
   const [searchOrigin, setSearchOrigin] = useState('');
   const [searchDestination, setSearchDestination] = useState('');
+  const [alertOrigin, setAlertOrigin] = useState('');
+  const [alertDestination, setAlertDestination] = useState('');
+  const [alertTravelDate, setAlertTravelDate] = useState('');
+  const [isSettingAlert, setIsSettingAlert] = useState(false);
+  const [alertToast, setAlertToast] = useState('');
 
   const fetchRides = () => {
     if (!authToken) { window.location.href = '/login'; return; }
@@ -61,6 +66,43 @@ function HomePage() {
       return originMatch && destinationMatch;
     });
   }, [allRides, searchOrigin, searchDestination]);
+
+  useEffect(() => {
+    if (!alertToast) return undefined;
+    const timer = setTimeout(() => setAlertToast(''), 4000);
+    return () => clearTimeout(timer);
+  }, [alertToast]);
+
+  const handleSetAlert = async (e) => {
+    e.preventDefault();
+    if (!authToken) { window.location.href = '/login'; return; }
+    if (!alertOrigin.trim() || !alertDestination.trim()) {
+      setAlertToast('Please enter both origin and destination.');
+      return;
+    }
+    setIsSettingAlert(true);
+    try {
+      const response = await fetch('/api/alerts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({
+          origin: alertOrigin.trim(),
+          destination: alertDestination.trim(),
+          travelDate: alertTravelDate || null
+        })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Failed to set alert.');
+      setAlertToast("Alert set! We'll email you when a matching ride is posted.");
+      setAlertOrigin('');
+      setAlertDestination('');
+      setAlertTravelDate('');
+    } catch (error) {
+      setAlertToast(error.message);
+    } finally {
+      setIsSettingAlert(false);
+    }
+  };
 
   return (
     <>
@@ -371,6 +413,63 @@ function HomePage() {
           font-weight: 500;
           text-decoration: none;
         }
+        .hs-alert-card {
+          margin-top: 28px;
+          border-radius: 16px;
+          border: 1px solid rgba(49, 56, 81, 0.2);
+          background: rgba(255, 255, 255, 0.3);
+          box-shadow: 0 8px 22px rgba(49, 56, 81, 0.09);
+          padding: 18px;
+        }
+        .hs-alert-title {
+          margin: 0;
+          color: #313851;
+          font-size: 24px;
+          font-weight: 700;
+          line-height: 1.2;
+        }
+        .hs-alert-subtitle {
+          margin: 6px 0 0;
+          color: rgba(49, 56, 81, 0.65);
+          font-size: 14px;
+        }
+        .hs-alert-form {
+          margin-top: 14px;
+          display: grid;
+          gap: 10px;
+          grid-template-columns: 1fr 1fr 220px auto;
+          align-items: end;
+        }
+        .hs-alert-btn {
+          border-radius: 10px;
+          border: 1px solid rgba(49, 56, 81, 0.22);
+          background: #313851;
+          color: #fff;
+          font-family: 'Space Grotesk', sans-serif;
+          font-size: 14px;
+          font-weight: 700;
+          padding: 12px 14px;
+        }
+        .hs-alert-btn:disabled {
+          opacity: 0.65;
+          cursor: not-allowed;
+        }
+        .hs-toast {
+          position: fixed;
+          bottom: 24px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: #313851;
+          color: #fff;
+          padding: 12px 22px;
+          border-radius: 12px;
+          font-size: 14px;
+          font-weight: 700;
+          box-shadow: 0 8px 22px rgba(49,56,81,0.32);
+          border: 1px solid rgba(255,255,255,0.14);
+          z-index: 9999;
+          white-space: nowrap;
+        }
         @media (max-width: 1100px) {
           .hs-page {
             padding: 20px 16px 0;
@@ -397,6 +496,9 @@ function HomePage() {
             font-size: 20px;
           }
           .hs-offer-two-col {
+            grid-template-columns: 1fr;
+          }
+          .hs-alert-form {
             grid-template-columns: 1fr;
           }
         }
@@ -449,7 +551,39 @@ function HomePage() {
               )}
             </div>
           </div>
+          <section className="hs-alert-card">
+            <h3 className="hs-alert-title">🔔 Not finding a ride?</h3>
+            <p className="hs-alert-subtitle">Set an alert and we'll email you when a matching ride is posted</p>
+            <form className="hs-alert-form" onSubmit={handleSetAlert}>
+              <input
+                className="hs-input"
+                type="text"
+                placeholder="Origin"
+                value={alertOrigin}
+                onChange={(e) => setAlertOrigin(e.target.value)}
+                required
+              />
+              <input
+                className="hs-input"
+                type="text"
+                placeholder="Destination"
+                value={alertDestination}
+                onChange={(e) => setAlertDestination(e.target.value)}
+                required
+              />
+              <input
+                className="hs-input"
+                type="date"
+                value={alertTravelDate}
+                onChange={(e) => setAlertTravelDate(e.target.value)}
+              />
+              <button className="hs-alert-btn" type="submit" disabled={isSettingAlert}>
+                {isSettingAlert ? 'Setting...' : 'Set Alert'}
+              </button>
+            </form>
+          </section>
         </div>
+        {alertToast && <div className="hs-toast">{alertToast}</div>}
         <footer className="hs-footer">
           <h4 className="hs-footer-brand">RastaConnect</h4>
           <p className="hs-footer-copy">Made with ❤️ for Mumbai&apos;s student community.</p>

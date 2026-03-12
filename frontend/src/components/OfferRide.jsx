@@ -5,7 +5,7 @@ function OfferRide({ onRideOffered, setInfoMessage, authToken }) {
   const [destination, setDestination] = useState('');
   const [departureTime, setDepartureTime] = useState('');
   const [availableSeats, setAvailableSeats] = useState('');
-  const [price, setPrice] = useState('');
+  const [womenOnly, setWomenOnly] = useState(false);
 
   // --- NEW: State for vehicles ---
   const [vehicles, setVehicles] = useState([]);
@@ -46,8 +46,8 @@ function OfferRide({ onRideOffered, setInfoMessage, authToken }) {
           destination,
           departureTime,
           availableSeats: parseInt(availableSeats),
-          price: parseFloat(price),
-          vehicleId: selectedVehicleId, // Send the selected vehicle ID
+          vehicleId: selectedVehicleId,
+          women_only: womenOnly,
         }),
       });
       const data = await response.json();
@@ -101,9 +101,24 @@ function OfferRide({ onRideOffered, setInfoMessage, authToken }) {
           </div>
         </div>
 
-        <div className="hs-offer-field">
-          <label className="hs-offer-label">Price per seat (₹)</label>
-          <input className="hs-input" type="number" min="0" placeholder="Set price per seat" value={price} onChange={(e) => setPrice(e.target.value)} required />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderRadius: '10px', background: 'rgba(49,56,81,0.04)', border: '1px solid rgba(49,56,81,0.08)' }}>
+          <div>
+            <span style={{ fontSize: '14px', fontWeight: 700, color: '#313851' }}>Women Only Ride 👩</span>
+            <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'rgba(49,56,81,0.55)', fontWeight: 500 }}>Only female passengers can book</p>
+          </div>
+          <label style={{ position: 'relative', display: 'inline-block', width: '44px', height: '24px', flexShrink: 0 }}>
+            <input type="checkbox" checked={womenOnly} onChange={(e) => setWomenOnly(e.target.checked)} style={{ opacity: 0, width: 0, height: 0 }} />
+            <span style={{
+              position: 'absolute', cursor: 'pointer', inset: 0, borderRadius: '999px',
+              background: womenOnly ? '#313851' : '#c2cbd3',
+              transition: 'background 0.25s ease',
+            }}>
+              <span style={{
+                position: 'absolute', content: '""', height: '18px', width: '18px', left: womenOnly ? '23px' : '3px', bottom: '3px',
+                background: '#fff', borderRadius: '50%', transition: 'left 0.25s ease', boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+              }} />
+            </span>
+          </label>
         </div>
 
         <button className="hs-post-btn" type="button" onClick={handleOfferRide} disabled={vehicles.length === 0}>Post Ride Offer</button>

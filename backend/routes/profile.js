@@ -4,11 +4,10 @@ const fetch = require('node-fetch');
 const multer = require('multer');
 const FormData = require('form-data');
 const auth = require('../middleware/auth');
+const mailer = require('../utils/mailer');
 const router = express.Router();
 const otpStore = {};
 const phoneVerificationStatus = {};
-const panVerificationStatus = {};
-const panNumberStore = {};
 const upload = multer({ storage: multer.memoryStorage() });
 
 const supabase = createClient(
@@ -20,7 +19,7 @@ router.get('/', auth, async (req, res) => {
   const userId = req.user.id;
   const { data: user, error } = await supabase
     .from('users')
-    .select('id, full_name, email, phone, age, gender, talkativeness, music_preference, phone_verified, face_verified, date_of_birth, smoking_allowed, pet_friendly, total_rides, average_rating')
+    .select('id, full_name, email, phone, age, gender, talkativeness, music_preference, phone_verified, pan_verified, pan_number, role, is_banned, face_verified, date_of_birth, smoking_allowed, pet_friendly, total_rides, average_rating')
     .eq('id', userId)
     .maybeSingle();
 
@@ -38,7 +37,7 @@ router.get('/', auth, async (req, res) => {
     const { data: createdUser, error: createError } = await supabase
       .from('users')
       .insert([{ id: userId, full_name: fallbackFullName, email: fallbackEmail }])
-      .select('id, full_name, email, phone, age, gender, talkativeness, music_preference, phone_verified, face_verified, date_of_birth, smoking_allowed, pet_friendly, total_rides, average_rating')
+      .select('id, full_name, email, phone, age, gender, talkativeness, music_preference, phone_verified, pan_verified, pan_number, role, is_banned, face_verified, date_of_birth, smoking_allowed, pet_friendly, total_rides, average_rating')
       .single();
 
     if (createError) {
@@ -52,10 +51,12 @@ router.get('/', auth, async (req, res) => {
     id: profileUser.id,
     fullName: profileUser.full_name,
     email: profileUser.email,
+    role: profileUser.role || 'user',
+    isBanned: profileUser.is_banned || false,
     phoneNumber: profileUser.phone || '',
     phoneVerified: Boolean(profileUser.phone_verified),
-    panNumber: panNumberStore[userId] || '',
-    panVerified: Boolean(panVerificationStatus[userId]),
+    panNumber: profileUser.pan_number || '',
+    panVerified: Boolean(profileUser.pan_verified),
     faceVerified: Boolean(profileUser.face_verified),
     dateOfBirth: profileUser.date_of_birth || '',
     smokingAllowed: Boolean(profileUser.smoking_allowed),
@@ -112,6 +113,17 @@ router.post('/send-otp', auth, async (req, res) => {
   if (error) {
     return res.status(500).json({ message: 'Database error updating phone number.' });
   }
+
+  // Send OTP via email
+  try {
+    const { data: user } = await supabase.from('users').select('email, full_name').eq('id', userId).maybeSingle();
+    if (user?.email) {
+      await mailer.sendOTP(user.email, { name: user.full_name || '', otp });
+    }
+  } catch (emailErr) {
+    console.error('OTP email send error (non-blocking):', emailErr.message);
+  }
+
   return res.status(200).json({ message: 'OTP sent successfully.', otp });
 });
 
@@ -135,9 +147,14 @@ router.post('/verify-pan', auth, async (req, res) => {
     return res.status(400).json({ message: 'Invalid PAN format. Must be 10 characters.' });
   }
   if (panNumber.includes('1234')) {
-    panNumberStore[userId] = panNumber;
-    panVerificationStatus[userId] = true;
-    return res.status(200).json({ message: 'PAN verified successfully.' });
+    const { error } = await supabase
+      .from('users')
+      .update({ pan_verified: true, pan_number: panNumber })
+      .eq('id', userId);
+    if (error) {
+      return res.status(500).json({ message: 'Database error updating PAN verification.' });
+    }
+    return res.status(200).json({ success: true, panVerified: true });
   }
   return res.status(400).json({ message: 'PAN could not be verified.' });
 });
@@ -326,6 +343,20 @@ router.delete('/delete-account', auth, async (req, res) => {
   } catch (err) {
     return res.status(500).json({ message: err.message });
   }
+});
+
+// PUT - Save FCM token for push notifications
+router.put('/fcm-token', auth, async (req, res) => {
+  const { fcmToken } = req.body;
+  const userId = req.user.id;
+
+  const { error } = await supabase
+    .from('users')
+    .update({ fcm_token: fcmToken })
+    .eq('id', userId);
+
+  if (error) return res.status(500).json({ message: 'Failed to save FCM token.' });
+  return res.status(200).json({ success: true });
 });
 
 module.exports = router;

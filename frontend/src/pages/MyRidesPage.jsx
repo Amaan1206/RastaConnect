@@ -125,6 +125,40 @@ function MyRidesPage() {
     } catch (err) { setMessage(err.message); }
   };
 
+  const handleShareRide = async (bookingId) => {
+    try {
+      const res = await fetch(`/api/bookings/${bookingId}/share-link`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      const shareUrl = `${window.location.origin}/share/${data.token}`;
+      await navigator.clipboard.writeText(shareUrl);
+      setMessage('Safety link copied! Share it with someone you trust.');
+    } catch (err) { setMessage(err.message); }
+  };
+
+  const handlePassengerComplete = async (bookingId) => {
+    if (!window.confirm('Mark your journey as completed?')) return;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`/api/bookings/${bookingId}/passenger-complete`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      setMessage('Journey marked as completed!');
+      fetchMyRides();
+    } catch (err) {
+      setMessage(err.message);
+    }
+  };
+
   const openRatingModal = (rideId, ratedId, ratedName) => {
     setRatingModal({ rideId, ratedId, ratedName });
     setRatingValue(0);
@@ -190,6 +224,7 @@ function MyRidesPage() {
         .mr-action { justify-self: start; border: 0; background: rgba(49, 56, 81, 0.8); color: #ffffff; padding: 8px 14px; border-radius: 12px; font-size: 0.875rem; font-weight: 700; font-family: 'Space Grotesk', sans-serif; cursor: pointer; }
         .mr-action.complete { background: #16a34a; }
         .mr-action.rate { background: #f59e0b; color: #1c1917; }
+        .mr-action.share { background: #0ea5e9; }
       `}</style>
 
       <div className="mr-page">
@@ -226,7 +261,7 @@ function MyRidesPage() {
                           <p className="mr-line"><strong>Drop:</strong> {p.drop_location || 'Not specified'}</p>
                           <p className="mr-line"><strong>Offered Price:</strong> ₹{p.passenger_price ?? p.driver_price ?? 'N/A'}</p>
                           <p className="mr-line"><strong>Phone:</strong> {p.phone || 'N/A'}</p>
-                          <p className="mr-line"><strong>Status:</strong> <span className={`mr-status status-${p.status}`}>{p.status}</span></p>
+                          <p className="mr-line"><strong>Booking:</strong> <span className={`mr-status status-${p.status}`}>{p.status}</span></p>
                           {p.status === 'pending' && (
                             <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
                               <button onClick={() => handleConfirmBooking(p.id)} style={{ padding: '6px 12px', background: '#16a34a', color: 'white', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Confirm</button>
@@ -242,7 +277,23 @@ function MyRidesPage() {
                       ))
                     ) : <p className="mr-line">No passengers yet</p>}
                   </div>
-                  <p className="mr-price">₹{ride.price}</p>
+                  {(() => {
+                    const confirmedPassengers = (offeredRidePassengers[ride.id] || []).filter((p) => p.status === 'confirmed');
+                    return confirmedPassengers.length > 0 ? (
+                      <>
+                        <p style={{ margin: '8px 0 0', fontSize: '16px', fontWeight: 700, color: '#16a34a' }}>
+                          💰 Total Earnings: ₹{confirmedPassengers.reduce((sum, p) => sum + (p.passenger_price || 0), 0)}
+                        </p>
+                        <p style={{ margin: '2px 0 0', fontSize: '13px', color: 'rgba(49,56,81,0.6)' }}>
+                          from {confirmedPassengers.length} confirmed passenger{confirmedPassengers.length !== 1 ? 's' : ''}
+                        </p>
+                      </>
+                    ) : (
+                      <p style={{ margin: '8px 0 0', fontSize: '14px', color: 'rgba(49,56,81,0.5)', fontWeight: 600 }}>
+                        💰 No confirmed passengers yet
+                      </p>
+                    );
+                  })()}
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     {ride.status === 'active' && (
                       <>
@@ -277,13 +328,30 @@ function MyRidesPage() {
                     <p className="mr-line"><strong>Plate:</strong> {booking.vehicleRegistration}</p>
                   </div>
                   <p className="mr-line"><strong>Departure:</strong> {formatDateTime(booking.departureTime)}</p>
-                  <p className="mr-line"><strong>Status:</strong> <span className={`mr-status status-${booking.bookingStatus}`}>{booking.bookingStatus}</span></p>
+                  <p className="mr-line">
+                    <strong>Status:</strong>{' '}
+                    {booking.passengerCompleted ? (
+                      <span className="mr-status status-confirmed">Completed</span>
+                    ) : (
+                      <span className="mr-status status-pending">Ongoing</span>
+                    )}
+                  </p>
+                  <p className="mr-line" style={{ fontSize: '0.85rem' }}>
+                    <strong>Booking:</strong>{' '}
+                    <span className={`mr-status status-${booking.bookingStatus}`}>{booking.bookingStatus}</span>
+                  </p>
                   <p className="mr-price">₹{booking.price}</p>
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    {booking.bookingStatus === 'confirmed' && booking.rideStatus !== 'completed' && (
+                    {booking.bookingStatus === 'confirmed' && !booking.passengerCompleted && (
                       <button type="button" onClick={() => handleCancelBooking(booking.bookingId)} className="mr-action">Cancel Booking</button>
                     )}
-                    {booking.rideStatus === 'completed' && booking.bookingStatus === 'confirmed' && (
+                    {booking.bookingStatus === 'confirmed' && !booking.passengerCompleted && (
+                      <button type="button" onClick={() => handlePassengerComplete(booking.bookingId)} className="mr-action complete">Mark as Completed ✅</button>
+                    )}
+                    {booking.bookingStatus === 'confirmed' && (
+                      <button type="button" onClick={() => handleShareRide(booking.bookingId)} className="mr-action share">Share Ride 🔗</button>
+                    )}
+                    {booking.passengerCompleted && booking.bookingStatus === 'confirmed' && (
                       <button type="button" className="mr-action rate" onClick={() => openRatingModal(booking.rideId, booking.driverId, booking.driverName)}>⭐ Rate Driver</button>
                     )}
                   </div>

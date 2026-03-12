@@ -352,10 +352,18 @@ function ProfilePage() {
                     backdrop-filter: blur(16px);
                     -webkit-backdrop-filter: blur(16px);
                     box-shadow: 0 10px 20px rgba(49, 56, 81, 0.12);
-                    padding: 12px 16px;
+                    padding: 16px 24px;
                     display: flex;
-                    gap: 14px;
+                    flex-direction: column;
+                    gap: 20px;
+                    width: 100%;
+                    height: auto;
+                    align-self: start;
+                }
+                .pf-hero-top {
+                    display: flex;
                     align-items: center;
+                    gap: 20px;
                     width: 100%;
                 }
                 .pf-avatar-wrap {
@@ -363,8 +371,8 @@ function ProfilePage() {
                     flex-shrink: 0;
                 }
                 .pf-avatar {
-                    height: 85px;
-                    width: 85px;
+                    height: 110px;
+                    width: 110px;
                     border-radius: 999px;
                     border: 2px solid rgba(255, 255, 255, 0.5);
                     background: rgba(255, 255, 255, 0.1);
@@ -430,8 +438,8 @@ function ProfilePage() {
                     flex: 1;
                     display: flex;
                     align-items: center;
-                    justify-content: flex-start;
-                    gap: 12px;
+                    justify-content: space-between;
+                    gap: 20px;
                     flex-wrap: nowrap;
                 }
                 .pf-hero-content p {
@@ -442,12 +450,11 @@ function ProfilePage() {
                     font-weight: 600;
                 }
                 .pf-hero-buttons {
-                    margin-top: 0;
                     display: flex;
-                    gap: 8px;
-                    flex-wrap: nowrap;
-                    justify-content: flex-end;
-                    margin-left: auto;
+                    flex-direction: column;
+                    align-items: flex-end;
+                    gap: 10px;
+                    flex-shrink: 0;
                 }
                 .pf-btn {
                     border-radius: 8px;
@@ -730,65 +737,64 @@ function ProfilePage() {
             <div className="pf-page">
                 <main className="pf-main">
                     <section className="pf-hero">
-                        <div className="pf-avatar-wrap">
-                            <div className="pf-avatar">
-                                {avatarUrl ? (
-                                    <img src={avatarUrl} alt="Profile avatar" className="pf-avatar-image" />
-                                ) : (
-                                    <span className="material-symbols-outlined" style={{ fontSize: '50px', opacity: 0.5 }}>account_circle</span>
-                                )}
+                        <div className="pf-hero-top">
+                            <div className="pf-avatar-wrap">
+                                <div className="pf-avatar">
+                                    {avatarUrl ? (
+                                        <img src={avatarUrl} alt="Profile avatar" className="pf-avatar-image" />
+                                    ) : (
+                                        <span className="material-symbols-outlined" style={{ fontSize: '50px', opacity: 0.5 }}>account_circle</span>
+                                    )}
+                                </div>
+                                <button type="button" className="pf-camera" onClick={handleCameraClick}>
+                                    <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>photo_camera</span>
+                                </button>
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    style={{ display: 'none' }}
+                                    onChange={handleAvatarFileChange}
+                                />
                             </div>
-                            <button type="button" className="pf-camera" onClick={handleCameraClick}>
-                                <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>photo_camera</span>
-                            </button>
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                accept="image/*"
-                                style={{ display: 'none' }}
-                                onChange={handleAvatarFileChange}
-                            />
-                        </div>
-                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'nowrap' }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 }}>
-                            <h2 style={{ margin: 0, color: '#313851', fontSize: '30px', fontWeight: 700, letterSpacing: '-0.02em' }}>{fullName || 'Profile'}</h2>
-                            <p style={{ margin: 0, fontSize: '14px', color: 'rgba(49,56,81,0.7)', fontWeight: 600 }}>
-                              {averageRating > 0 ? `⭐ ${averageRating.toFixed(2)}` : '⭐ No ratings yet'} · {totalRides} ride{totalRides !== 1 ? 's' : ''} completed
-                            </p>
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                            {isFaceVerified && <span className="pf-face-badge">Face Verified</span>}
-                            {phoneVerified && (
-                              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '999px', padding: '4px 10px', fontSize: '12px', lineHeight: 1, fontWeight: 700, color: '#166534', background: 'rgba(134, 239, 172, 0.55)', border: '1px solid rgba(22, 163, 74, 0.35)', whiteSpace: 'nowrap' }}>
-                                Number Verified
-                              </span>
-                            )}
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                              <button type="button" className="pf-btn" onClick={(e) => handleUpdateProfile(e)} disabled={!isEditMode} style={{ cursor: isEditMode ? 'pointer' : 'not-allowed' }}>Save Changes</button>
-                              <button type="button" className="pf-btn pf-btn-secondary" onClick={() => setIsEditMode(true)}>Edit Profile</button>
-                              <button
-                                type="button"
-                                onClick={async () => {
-                                  if (!window.confirm('Are you sure you want to delete your account? This cannot be undone.')) return;
-                                  const { data: { session } } = await supabase.auth.getSession();
-                                  const res = await fetch('/api/profile/delete-account', { method: 'DELETE', headers: { 'Authorization': `Bearer ${session.access_token}` } });
-                                  if (res.ok) { await supabase.auth.signOut(); window.location.href = '/'; }
-                                }}
-                                style={{ padding: '10px 18px', background: '#dc2626', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Space Grotesk, sans-serif' }}
-                              >
-                                Delete Account
-                              </button>
+                            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'nowrap' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 }}>
+                                    <h2 style={{ margin: 0, color: '#313851', fontSize: '30px', fontWeight: 700, letterSpacing: '-0.02em' }}>{fullName || 'Profile'}</h2>
+                                    <p style={{ margin: 0, fontSize: '14px', color: 'rgba(49,56,81,0.7)', fontWeight: 600 }}>
+                                        {averageRating > 0 ? `⭐ ${averageRating.toFixed(2)}` : '⭐ No ratings yet'} · {totalRides} ride{totalRides !== 1 ? 's' : ''} completed
+                                    </p>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                                    {isFaceVerified && <span className="pf-face-badge">Face Verified</span>}
+                                    {phoneVerified && (
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '999px', padding: '4px 10px', fontSize: '12px', lineHeight: 1, fontWeight: 700, color: '#166534', background: 'rgba(134, 239, 172, 0.55)', border: '1px solid rgba(22, 163, 74, 0.35)', whiteSpace: 'nowrap' }}>
+                                            Number Verified
+                                        </span>
+                                    )}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        <button type="button" className="pf-btn" onClick={(e) => handleUpdateProfile(e)} disabled={!isEditMode} style={{ cursor: isEditMode ? 'pointer' : 'not-allowed' }}>Save Changes</button>
+                                        <button type="button" className="pf-btn pf-btn-secondary" onClick={() => setIsEditMode(true)}>Edit Profile</button>
+                                        <button
+                                            type="button"
+                                            onClick={async () => {
+                                                if (!window.confirm('Are you sure you want to delete your account? This cannot be undone.')) return;
+                                                const { data: { session } } = await supabase.auth.getSession();
+                                                const res = await fetch('/api/profile/delete-account', { method: 'DELETE', headers: { 'Authorization': `Bearer ${session.access_token}` } });
+                                                if (res.ok) { await supabase.auth.signOut(); window.location.href = '/'; }
+                                            }}
+                                            style={{ padding: '10px 18px', background: '#dc2626', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Space Grotesk, sans-serif' }}
+                                        >
+                                            Delete Account
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
-                          </div>
                         </div>
-                    </section>
 
-                    <section className="pf-grid">
-                        <div className="pf-left">
+                        <div style={{ borderTop: '1px solid rgba(49,56,81,0.1)', paddingTop: '16px' }}>
                             <div className="pf-profile-head">
                                 <span>My Profile</span>
                             </div>
-
                             <div className="pf-profile-fields">
                                 <div className="pf-field">
                                     <label className="pf-label">Full Name</label>
@@ -913,6 +919,9 @@ function ProfilePage() {
                                 </div>
                             </div>
                         </div>
+                    </section>
+
+                    <section style={{ display: 'grid', gap: '20px' }}>
 
                         <div className="pf-verify-col">
                             <div className="pf-verify-card">
@@ -993,53 +1002,55 @@ function ProfilePage() {
                     )}
 
                 </main>
-            </div>
-            {isFaceModalOpen ? (
-                <div className="pf-modal-backdrop">
-                    <div className="pf-modal">
-                        <div className="pf-modal-head">
-                            <h3 className="pf-modal-title">Face Verification</h3>
-                            <button type="button" className="pf-modal-close" onClick={handleCloseFaceModal}>
-                                Close
-                            </button>
-                        </div>
+            </div >
+            {
+                isFaceModalOpen ? (
+                    <div className="pf-modal-backdrop" >
+                        <div className="pf-modal">
+                            <div className="pf-modal-head">
+                                <h3 className="pf-modal-title">Face Verification</h3>
+                                <button type="button" className="pf-modal-close" onClick={handleCloseFaceModal}>
+                                    Close
+                                </button>
+                            </div>
 
-                        <div className="pf-modal-section">
-                            <h4>Step 1 — Upload Reference Photo</h4>
-                            <p className="pf-face-step-label">Use your current profile picture as the reference face embedding.</p>
-                            {avatarUrl ? (
-                                <img src={avatarUrl} alt="Reference profile" className="pf-face-preview" />
-                            ) : (
-                                <p className="pf-face-step-label">No profile picture found. Upload one using the camera button first.</p>
-                            )}
-                            <button
-                                type="button"
-                                className="pf-btn-sm"
-                                onClick={handleRegisterFace}
-                                disabled={isFaceActionLoading || !avatarUrl}
-                            >
-                                Use Profile Picture as Reference
-                            </button>
-                            {faceMessage && <p style={{ marginTop: '10px', color: 'green' }}>{faceMessage}</p>}
-                            {hasReferenceEmbedding ? <p className="pf-success-text">Reference embedding stored successfully.</p> : null}
-                        </div>
+                            <div className="pf-modal-section">
+                                <h4>Step 1 — Upload Reference Photo</h4>
+                                <p className="pf-face-step-label">Use your current profile picture as the reference face embedding.</p>
+                                {avatarUrl ? (
+                                    <img src={avatarUrl} alt="Reference profile" className="pf-face-preview" />
+                                ) : (
+                                    <p className="pf-face-step-label">No profile picture found. Upload one using the camera button first.</p>
+                                )}
+                                <button
+                                    type="button"
+                                    className="pf-btn-sm"
+                                    onClick={handleRegisterFace}
+                                    disabled={isFaceActionLoading || !avatarUrl}
+                                >
+                                    Use Profile Picture as Reference
+                                </button>
+                                {faceMessage && <p style={{ marginTop: '10px', color: 'green' }}>{faceMessage}</p>}
+                                {hasReferenceEmbedding ? <p className="pf-success-text">Reference embedding stored successfully.</p> : null}
+                            </div>
 
-                        <div className="pf-modal-section">
-                            <h4>Step 2 — Live Verification</h4>
-                            {!referenceRegistered ? (
-                                <p>Complete Step 1 first to start live verification.</p>
-                            ) : (
-                                <LivenessCheck
-                                    onSuccess={handleLivenessSuccess}
-                                    onFailure={handleLivenessFailure}
-                                />
-                            )}
-                        </div>
+                            <div className="pf-modal-section">
+                                <h4>Step 2 — Live Verification</h4>
+                                {!referenceRegistered ? (
+                                    <p>Complete Step 1 first to start live verification.</p>
+                                ) : (
+                                    <LivenessCheck
+                                        onSuccess={handleLivenessSuccess}
+                                        onFailure={handleLivenessFailure}
+                                    />
+                                )}
+                            </div>
 
-                        {faceModalMessage ? <p className="pf-modal-message">{faceModalMessage}</p> : null}
+                            {faceModalMessage ? <p className="pf-modal-message">{faceModalMessage}</p> : null}
+                        </div>
                     </div>
-                </div>
-            ) : null}
+                ) : null
+            }
         </>
     );
 }

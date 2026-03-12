@@ -2,7 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import { supabase } from './supabaseClient';
+import { initializeApp } from 'firebase/app';
+import { getMessaging, getToken } from 'firebase/messaging';
 import './App.css';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBUw-ML4Lp7C9wbkE6pF-GB7rnaz_2U-RI",
+  authDomain: "rastaconnect.firebaseapp.com",
+  projectId: "rastaconnect",
+  storageBucket: "rastaconnect.firebasestorage.app",
+  messagingSenderId: "932472285031",
+  appId: "1:932472285031:web:7c431fc618775bf772f1c2",
+  measurementId: "G-35VCLZXMJ0"
+};
+
+const firebaseApp = initializeApp(firebaseConfig);
+const messaging = getMessaging(firebaseApp);
 
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -65,6 +80,32 @@ function App() {
       subscription.unsubscribe();
     };
   }, [navigate]);
+
+  // Register FCM token when user is logged in
+  useEffect(() => {
+    if (!isLoggedIn || !authToken) return;
+
+    const registerFCM = async () => {
+      try {
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') return;
+
+        const fcmToken = await getToken(messaging, { vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY });
+        if (fcmToken) {
+          await fetch('/api/profile/fcm-token', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+            body: JSON.stringify({ fcmToken })
+          });
+          console.log('FCM token registered');
+        }
+      } catch (err) {
+        console.error('FCM registration error:', err.message);
+      }
+    };
+
+    registerFCM();
+  }, [isLoggedIn, authToken]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();

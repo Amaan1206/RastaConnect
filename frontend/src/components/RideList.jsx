@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 function RideList({ rides, onRideBooked, infoMessage, setInfoMessage, authToken }) {
   const [bookingRideId, setBookingRideId] = useState(null);
@@ -6,12 +6,15 @@ function RideList({ rides, onRideBooked, infoMessage, setInfoMessage, authToken 
   const [pickupLocation, setPickupLocation] = useState('');
   const [dropLocation, setDropLocation] = useState('');
   const [passengerPrice, setPassengerPrice] = useState('');
+  const [priceSuggestion, setPriceSuggestion] = useState(null);
+  const [isCalculatingPrice, setIsCalculatingPrice] = useState(false);
 
   const openModal = (ride) => {
     setModalRide(ride);
     setPickupLocation('');
     setDropLocation('');
-    setPassengerPrice(String(ride.price));
+    setPassengerPrice('');
+    setPriceSuggestion(null);
     setInfoMessage('');
   };
 
@@ -20,7 +23,41 @@ function RideList({ rides, onRideBooked, infoMessage, setInfoMessage, authToken 
     setPickupLocation('');
     setDropLocation('');
     setPassengerPrice('');
+    setPriceSuggestion(null);
+    setIsCalculatingPrice(false);
   };
+
+  useEffect(() => {
+    if (!modalRide) return;
+    let cancelled = false;
+
+    const fetchSuggestedPrice = async () => {
+      setIsCalculatingPrice(true);
+      setPriceSuggestion(null);
+      try {
+        const response = await fetch(`/api/rides/${modalRide.id}/suggested-price`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'Failed to fetch suggested price.');
+        if (!cancelled) {
+          setPriceSuggestion(data);
+          setPassengerPrice(String(data.passengerOfferPrice));
+        }
+      } catch (_error) {
+        if (!cancelled) {
+          setPriceSuggestion(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsCalculatingPrice(false);
+        }
+      }
+    };
+
+    fetchSuggestedPrice();
+    return () => { cancelled = true; };
+  }, [modalRide, authToken]);
 
   const handleBookRide = async () => {
     if (!modalRide) return;
@@ -108,7 +145,14 @@ function RideList({ rides, onRideBooked, infoMessage, setInfoMessage, authToken 
                     </div>
                   </details>
                 )}
-                <p className="hs-ride-price">₹{ride.price}</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  <p className="hs-ride-price" style={{ margin: 0 }}>₹{ride.price}</p>
+                  {ride.womenOnly && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 10px', borderRadius: '999px', fontSize: '11px', fontWeight: 700, color: '#9d174d', background: 'rgba(236, 72, 153, 0.15)', border: '1px solid rgba(236, 72, 153, 0.4)', whiteSpace: 'nowrap' }}>
+                      Women Only 👩
+                    </span>
+                  )}
+                </div>
                 <button className="hs-book-btn" onClick={() => openModal(ride)}>
                   Book Ride
                 </button>
@@ -148,21 +192,28 @@ function RideList({ rides, onRideBooked, infoMessage, setInfoMessage, authToken 
 
             <div style={{ marginBottom: '24px' }}>
               <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#d1d5db' }}>
-                Your Price Offer (₹) <span style={{ color: '#9ca3af', fontWeight: 400 }}>— Driver asks ₹{modalRide.price}</span>
+                Your Price Offer (₹)
               </label>
               <input
                 type="number"
-                placeholder={String(modalRide.price)}
+                placeholder="Enter your offer price"
                 value={passengerPrice}
                 onChange={e => setPassengerPrice(e.target.value)}
                 style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: '14px', boxSizing: 'border-box' }}
               />
-              {passengerPrice && Number(passengerPrice) !== modalRide.price && (
-                <p style={{ marginTop: '6px', fontSize: '12px', color: '#fbbf24' }}>⚠ Your price differs from driver's — booking will need driver approval.</p>
+              {isCalculatingPrice && (
+                <p style={{ marginTop: '8px', fontSize: '13px', color: '#d1d5db' }}>Calculating fair price...</p>
               )}
-              {passengerPrice && Number(passengerPrice) === modalRide.price && (
-                <p style={{ marginTop: '6px', fontSize: '12px', color: '#34d399' }}>✓ Matches driver's price — booking will be confirmed instantly.</p>
+              {priceSuggestion && (
+                <div style={{ marginTop: '10px', background: 'rgba(49,56,81,0.06)', borderRadius: '8px', padding: '12px', fontSize: '13px', color: '#e5e7eb' }}>
+                  <p style={{ margin: 0, fontWeight: 700 }}>💡 Smart Price Suggestion</p>
+                  <p style={{ margin: '4px 0' }}>─────────────────────────</p>
+                  <p style={{ margin: 0 }}>Market Rate: ₹{priceSuggestion.suggestedPrice}</p>
+                  <p style={{ margin: '2px 0 0' }}>Carpool Discount: -20%</p>
+                  <p style={{ margin: '2px 0 0', fontWeight: 700 }}>Your Offer: ₹{priceSuggestion.passengerOfferPrice}</p>
+                </div>
               )}
+              <p style={{ marginTop: '8px', fontSize: '12px', color: '#34d399' }}>✓ Booking request will be sent to driver for approval</p>
             </div>
 
             {infoMessage && <p style={{ marginBottom: '16px', color: '#f87171', fontSize: '13px' }}>{infoMessage}</p>}

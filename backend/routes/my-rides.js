@@ -47,83 +47,34 @@ router.get('/booked', auth, async (req, res) => {
 
   const { data: bookings, error: bookingsError } = await supabase
     .from('bookings')
-    .select('id, ride_id, status')
+    .select('*, rides(status, user_id, pickup_address, dropoff_address, departure_time, price, users(full_name), vehicles(make, model, color, plate_number))')
     .eq('user_id', userId)
     .neq('status', 'cancelled');
 
   if (bookingsError) { return res.status(500).json({ message: 'Database error.', error: bookingsError.message }); }
   if (!bookings || bookings.length === 0) { return res.status(200).json({ rides: [] }); }
 
-  const rideIds = [...new Set(bookings.map((booking) => booking.ride_id).filter(Boolean))];
-
-  const { data: rides, error: ridesError } = await supabase
-    .from('rides')
-    .select('id, pickup_address, dropoff_address, departure_time, price, user_id, vehicle_id')
-    .in('id', rideIds);
-
-  if (ridesError) { return res.status(500).json({ message: 'Database error.', error: ridesError.message }); }
-
-  const ridesById = (rides || []).reduce((acc, ride) => {
-    acc[ride.id] = ride;
-    return acc;
-  }, {});
-
-  const driverIds = [...new Set((rides || []).map((ride) => ride.user_id).filter(Boolean))];
-  const vehicleIds = [...new Set((rides || []).map((ride) => ride.vehicle_id).filter(Boolean))];
-
-  let usersById = {};
-  if (driverIds.length > 0) {
-    const { data: users, error: usersError } = await supabase
-      .from('users')
-      .select('id, full_name')
-      .in('id', driverIds);
-
-    if (usersError) { return res.status(500).json({ message: 'Database error.', error: usersError.message }); }
-
-    usersById = (users || []).reduce((acc, user) => {
-      acc[user.id] = user;
-      return acc;
-    }, {});
-  }
-
-  let vehiclesById = {};
-  if (vehicleIds.length > 0) {
-    const { data: vehicles, error: vehiclesError } = await supabase
-      .from('vehicles')
-      .select('id, make, model, color, plate_number')
-      .in('id', vehicleIds);
-
-    if (vehiclesError) { return res.status(500).json({ message: 'Database error.', error: vehiclesError.message }); }
-
-    vehiclesById = (vehicles || []).reduce((acc, vehicle) => {
-      acc[vehicle.id] = vehicle;
-      return acc;
-    }, {});
-  }
-
   const formattedBookings = bookings
     .map((booking) => {
-      const ride = ridesById[booking.ride_id];
+      const ride = booking.rides;
       if (!ride) return null;
-
-      const driver = usersById[ride.user_id];
-      const vehicle = vehiclesById[ride.vehicle_id];
 
       return {
         bookingId: booking.id,
+        rideId: booking.ride_id,
         bookingStatus: booking.status,
-        rideId: ride.id,
+        rideStatus: ride.status,
+        passengerCompleted: Boolean(booking.passenger_completed),
+        driverId: ride.user_id,
         origin: ride.pickup_address,
         destination: ride.dropoff_address,
         departureTime: ride.departure_time,
-        price: ride.price,
-        driverName: driver?.full_name || 'Driver',
-        vehicleMake: vehicle?.make || '',
-        vehicleModel: vehicle?.model || '',
-        vehicleColor: vehicle?.color || '',
-        vehicleRegistration: vehicle?.plate_number || '',
-        rideStatus: ride.status,
-        driverId: ride.user_id,
+        price: booking.passenger_price || ride.price,
+        driverName: ride.users?.full_name || 'Driver',
+        vehicleMake: ride.vehicles?.make || '',
+        vehicleModel: ride.vehicles?.model || '',
+        vehicleColor: ride.vehicles?.color || '',
+        vehicleRegistration: ride.vehicles?.plate_number || '',
       };
     })
     .filter(Boolean);
