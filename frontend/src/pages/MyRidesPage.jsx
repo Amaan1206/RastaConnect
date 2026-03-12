@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient('https://swxocqjjfyfhwacioanc.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN3eG9jcWpqZnlmaHdhY2lvYW5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MDgwMjAsImV4cCI6MjA4ODM4NDAyMH0.sua8bBZqDqFXGbMDYqFjMq9p6IWGK2QWXRo6wVJyFbE');
+const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY);
 
 function StarRating({ value, onChange }) {
   return (

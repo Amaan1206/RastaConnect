@@ -1,10 +1,5 @@
-const { createClient } = require('@supabase/supabase-js');
 const auth = require('./auth');
-
-const supabase = createClient(
-  process.env.SUPABASE_URL || 'https://swxocqjjfyfhwacioanc.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN3eG9jcWpqZnlmaHdhY2lvYW5jIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjgwODAyMCwiZXhwIjoyMDg4Mzg0MDIwfQ.RG37CMiXXWd-iauAPYWLOGsn2vPQOmA2neGNdCsvupo'
-);
+const supabase = require('../utils/supabaseClient');
 
 module.exports = function(req, res, next) {
   return auth(req, res, async () => {

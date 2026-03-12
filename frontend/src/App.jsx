@@ -7,12 +7,12 @@ import { getMessaging, getToken } from 'firebase/messaging';
 import './App.css';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBUw-ML4Lp7C9wbkE6pF-GB7rnaz_2U-RI",
-  authDomain: "rastaconnect.firebaseapp.com",
-  projectId: "rastaconnect",
-  storageBucket: "rastaconnect.firebasestorage.app",
-  messagingSenderId: "932472285031",
-  appId: "1:932472285031:web:7c431fc618775bf772f1c2",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
   measurementId: "G-35VCLZXMJ0"
 };
 

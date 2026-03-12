@@ -51,3 +51,4 @@ face-service/venv/
 
 # OS
 Thumbs.db
+frontend/dist/
